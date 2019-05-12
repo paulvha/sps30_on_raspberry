@@ -6,7 +6,7 @@ Software to connect an SPS30 with a Raspberry Pi running I2C. It is able to inst
 read and display data from an SPS30. The monitor can optionally be
 extended to include a DYLOS DC1700 and /or SDS011 monitor and provide common output.
 
-<br> A detailed description of the options and findings are in SPS30 on raspberry.odt
+<br> A detailed description of the options and findings are in SPS30_on_raspberry.odt
 
 ## Getting Started
 This project is part of a number of projects to measure the air quality.
@@ -39,13 +39,13 @@ Install latest from BCM2835 from : http://www.airspayce.com/mikem/bcm2835/
 To compile the program, go in the directory and type
     make
 
-To create a build the SPS30 with Dylos monitor (in case you have one)
+To create a build the SPS30 with Dylos monitor (in case you have one):
     make BUILD=DYLOS
 
-To create a build the SPS30 with SDS011 monitor (in case you have one)
+To create a build the SPS30 with SDS011 monitor (in case you have one):
     make BUILD=SDS011
 
-To create a build the SPS30 with BOTH SDS011 & Dylos monitor
+To create a build the SPS30 with BOTH SDS011 & Dylos monitor:
     make BUILD=BOTH
 
 ## Program usage
