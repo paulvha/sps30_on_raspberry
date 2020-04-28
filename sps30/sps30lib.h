@@ -15,7 +15,20 @@
  *
  **********************************************************************
  * Initial version by paulvha version 12 May 2019
- *
+ * 
+ * version 1.4  / April 2020
+ *  - Based on the new SPS30 datasheet (March 2020) a number of functions
+ *    are added or updated. Some are depending on the new firmware.
+ *  - Added sleep() and wakeup(). Requires firmware 2.0
+ *  - Added GetVersion() to obtain the current firmware / hardware info
+ *  - Added GetStatusReg() to obtain SPS30 status information. Requires firmware 2.2
+ *  - Added structure SPS30_version for GetVersion
+ *  - Added FWcheck function to check on correct firmware level
+ *  - Added INCLUDE_FWCHECK in SPS30lib.h to enable /disable check.
+ *  - Changed probe() to obtain firmware levels instead of serial number.
+ *  - Changed on how to obtaining product-type
+ *  - Depreciated GetArticleCode(). Still supporting backward compatibility
+ *  - Update to documentation
  *********************************************************************
 */
 #ifndef SPS30_H
@@ -26,8 +39,32 @@
 # include <unistd.h>
 # include <bcm2835.h>
 
-/* define version */
-#define version "1.0"
+/**
+ * library version levels
+ */
+#define DRIVER_MAJOR 1
+#define DRIVER_MINOR 4
+
+/**
+ * ADDED version 1.4
+ * New firmware levels have been slipped streamed into the SPS30
+ * The datasheet from March 2020 shows added / updated functions on new
+ * firmware level. E.g. sleep(), wakeup(), status register are new
+ *
+ * On serial connection the new functions are accepted and positive
+ * acknowledged on lower level firmware, but execution does not seem
+ * to happen or should be expected.
+ *
+ * On I2C reading Status register gives an error on lower level firmware.
+ * Sleep and wakeup are accepted and positive acknowledged on lower level
+ * firmware, but execution does not seem to happen or should be expected.
+ *
+ * Starting version 1.4 of this driver a firmware level check has been implemented
+ * and in case a function is called that requires a higher level than
+ * on the current SPS30, it will return an error.
+ * By setting INCLUDE_FWCHECK to 0, this check can be disabled
+ */
+#define INCLUDE_FWCHECK 1
 
 /* structure to return all values */
 struct sps_values
@@ -79,6 +116,7 @@ typedef union {
 #define ERR_CMDSTATE    0x43
 #define ERR_TIMEOUT     0x50
 #define ERR_PROTOCOL    0x51
+#define ERR_FIRMWARE    0x88        // added version 1.4
 
 struct Description {
     uint8_t code;
@@ -96,12 +134,58 @@ struct Description {
 #define I2C_STOP_MEASUREMENT        0x0104
 #define I2C_READ_DATA_RDY_FLAG      0x0202
 #define I2C_READ_MEASURED_VALUE     0x0300
+#define I2C_SLEEP                   0X1001  // ADDED 1.4
+#define I2C_WAKEUP                  0X1002  // ADDED 1.4
+#define I2C_START_FAN_CLEANING      0x5607
 #define I2C_AUTO_CLEANING_INTERVAL  0x8004
 #define I2C_SET_AUTO_CLEANING_INTERVAL      0x8005
-#define I2C_START_FAN_CLEANING      0x5607
-#define I2C_READ_ARTICLE_CODE       0xD025
+
+#define I2C_READ_PRODUCT_TYPE       0xD002 // CHANGED 1.4
 #define I2C_READ_SERIAL_NUMBER      0xD033
+#define I2C_READ_VERSION            0xD100 // ADDED 1.4
+#define I2C_READ_STATUS_REGISTER    0xD206 // ADDED 1.4
+#define I2C_CLEAR_STATUS_REGISTER   0xD206 // ADDED 1.4 (NOT USED)
 #define I2C_RESET                   0xD304
+
+/**
+ * added version 1.4
+ *
+ * New call was explained to obtain the version levels
+ * datasheet SPS30 March 2020, page 14
+ *
+ */
+struct SPS30_version {
+    uint8_t major;                  // Firmware level
+    uint8_t minor;
+    uint8_t DRV_major;
+    uint8_t DRV_minor;
+};
+
+/**
+ * added version 1.4
+ *
+ * Status register result
+ *
+ * REQUIRES FIRMWARE LEVEL 2.2
+ */
+enum SPS_status {
+    STATUS_OK = 0,
+    STATUS_SPEED_ERROR = 1,
+    STATUS_LASER_ERROR = 2,
+    STATUS_FAN_ERROR = 4
+};
+
+/**
+ * added version 1.4
+ *
+ * Measurement can be done in FLOAR or unsigned 16bits
+ * page 6 datasheet SPS30 page 6.
+ *
+ * This driver only uses float
+ */
+#define START_MEASURE_FLOAT           0X03
+#define START_MEASURE_UNS16           0X05
+
 
 /* I2c address */
 #define SPS30_ADDRESS 0x69          
@@ -150,6 +234,13 @@ class SPS30
     bool clean() {return(Instruct(I2C_START_FAN_CLEANING));}
 
     /**
+     * Added 1.4
+     * @brief Set SPS30 to sleep or wakeup
+     * Requires Firmwarelevel 2.0
+     */
+    uint8_t sleep() {return(SetOpMode(I2C_SLEEP));}
+    uint8_t wakeup(){return(SetOpMode(I2C_WAKEUP));}
+    /**
      * @brief : Set or get Auto Clean interval
      * @param val : value to get (pointer) or set
      * 
@@ -182,8 +273,33 @@ class SPS30
      *  else error
      */
     uint8_t GetSerialNumber(char *ser, uint8_t len) {return(Get_Device_info(I2C_READ_SERIAL_NUMBER, ser, len));}
-    uint8_t GetArticleCode(char *ser, uint8_t len)  {return(Get_Device_info(I2C_READ_ARTICLE_CODE, ser, len));}
+    uint8_t GetProductName(char *ser, uint8_t len)  {return(Get_Device_info(I2C_READ_PRODUCT_TYPE, ser, len));}      // CHANGED 1.4
 
+    /**
+     * CHANGED 1.4
+     * Depreciated in Datasheet March 2020
+     * left for backward compatibility with older sketches
+     */
+    uint8_t GetArticleCode(char *ser, uint8_t len)  {ser[0] = 0x0; return ERR_OK;}
+    
+    /** ADDED 1.4
+     * @brief : retrieve software/hardware version information from the SPS-30
+     *
+     */
+    uint8_t GetVersion(SPS30_version *v);
+
+    /** ADDED 1.4
+     * @brief : Read Device Status from the SPS-30
+     *
+     * REQUIRES FIRMWARE 2.2
+     * The commands are accepted and positive acknowledged on lower level
+     * firmware, but do not execute.
+     *
+     */
+    uint8_t GetStatusReg(uint8_t *status);
+    
+    
+    
     /**
      * @brief : check for new data available on SPS-30
      * Return
@@ -220,6 +336,19 @@ class SPS30
     float GetNumPM10()  {return(Get_Single_Value(v_NumPM10));}
     float GetPartSize() {return(Get_Single_Value(v_PartSize));}
 
+
+    /**
+     * @brief Check SPS30 Firmware level
+     *
+     * @param  Major : minimum Major level of firmware
+     * @param  Minor : minimum Minor level of firmware
+     *
+     * return 
+     *  true if SPS30 has this mininum level
+     *  false is NOT
+     */
+    bool FWCheck(uint8_t major, uint8_t minor); // added 1.4
+    
   private:
 
     /** shared variables */
@@ -229,11 +358,15 @@ class SPS30
     uint8_t _Send_BUF_Length;
     int _SPS30_Debug;           // program debug level
     bool _started;              // indicate the measurement has started
+    bool _sleep;                // indicate that SPS30 is in sleep (added 1.4)
+    bool _WasStarted;           // restart if SPS30 was started before setting sleep (added 1.4)
+    uint8_t _FW_Major, _FW_Minor;  // holds firmware major (added 1.4)
     uint8_t Reported[11];      // use as cache indicator single value
 
     /** shared supporting routines */
     uint8_t Get_Device_info(uint32_t type, char *ser, uint8_t len);
     bool Instruct(uint32_t type);
+    uint8_t SetOpMode(uint16_t mode);            // added 1.4
     float Get_Single_Value(uint8_t value);
     float byte_to_float(int x);
     uint32_t byte_to_U32(int x);

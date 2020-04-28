@@ -43,6 +43,20 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ *  version 1.4  / April 2020
+ *  - Based on the new SPS30 datasheet (March 2020) a number of functions
+ *    are added or updated. Some are depending on the new firmware.
+ *  - Added sleep() and wakeup(). Requires firmware 2.0
+ *  - Added GetVersion() to obtain the current firmware / hardware info
+ *  - Added GetStatusReg() to obtain SPS30 status information. Requires firmware 2.2
+ *  - Added structure SPS30_version for GetVersion
+ *  - Added FWcheck function to check on correct firmware level
+ *  - Added INCLUDE_FWCHECK in SPS30lib.h to enable /disable check.
+ *  - Changed probe() to obtain firmware levels instead of serial number.
+ *  - Changed on how to obtaining product-type
+ *  - Depreciated GetArticleCode(). Still supporting backward compatibility
+ *  - Update to documentation
  **********************************************************************/
 
 # include "sps30lib.h"
@@ -52,6 +66,7 @@
 # include <stdarg.h>
 # include <time.h>
 # include <stdlib.h>
+
 
 #ifdef DYLOS        // DYLOS monitor option
 
@@ -102,6 +117,8 @@ typedef struct sps_par
     bool   num;                 // display numbers
     bool   partsize;            // display partsize
     bool   relation;            // include correlation calc (SDS or Dylos)
+    bool   DevStatus;            // display device status 
+    bool   OptMode ;            //  perform sleep /wake up during wait-time
 
     /* to store the SPS30 values */
     struct sps_values v;
@@ -265,8 +282,13 @@ void get_time_stamp(char * buf)
  ************************************************/
 void init_variables(struct sps_par *sps)
 {
+    if (MySensor.begin() != ERR_OK) {
+        p_printf(RED,(char *)"Error during setting I2C\n");
+        exit(EXIT_FAILURE);
+    }
+    
     /* option SPS30 parameters */
-    sps->interval = 0;
+    sps->interval = 604800;         // default value for autoclean
     sps->fanclean = false;
     sps->dev_info_only = false;
     
@@ -279,6 +301,8 @@ void init_variables(struct sps_par *sps)
     sps->num = true;                // display num by default
     sps->partsize = false;          // display partsize by default
     sps->relation = false;          // display correlation Dylos/SDS
+    sps->DevStatus = false;         // display device status 
+    sps->OptMode = false;           //  perform sleep /wake up during wait-time
 
 #ifdef DYLOS                        // DYLOS monitor option
     /* Dylos values */
@@ -305,11 +329,6 @@ void init_hw(struct sps_par *sps)
     
     /* progress & debug messages tell driver */
     MySensor.EnableDebugging(sps->verbose);
-    
-    if (MySensor.begin() != ERR_OK) {
-        p_printf(RED,(char *)"Error during setting I2C\n");
-        exit(EXIT_FAILURE);
-    }
   
     /* check for auto clean interval update */
     if (MySensor.GetAutoCleanInt(&val) != ERR_OK) {
@@ -522,6 +541,7 @@ void do_output(struct sps_par *sps)
 {
     char buf[30];
     bool output = false;
+    uint8_t status;
     
     /* obtain the data */
     if (MySensor.GetValues(&sps->v) != ERR_OK)  {
@@ -549,8 +569,30 @@ void do_output(struct sps_par *sps)
         output = true;
     }
     
-    if(sps->partsize) {
+    if (sps->partsize) {
         p_printf(GREEN,(char *) "Partsize\t     %8.4f\n",sps->v.PartSize); 
+        
+        output = true;
+    }
+    
+    if (sps->DevStatus) {
+        if (MySensor.GetStatusReg(&status) == ERR_OK) {
+            if (status == 0)
+                p_printf(GREEN,(char *) "Device Status\t     No Errors.\n");
+            
+            else {
+                
+                if (status & STATUS_SPEED_ERROR)
+                    p_printf(RED,(char *) "Device Status\t      WARNING: Fan is turning too fast or too slow\n");
+                if (status & STATUS_LASER_ERROR)
+                    p_printf(RED,(char *) "Device Status\t      ERROR  : Laser failure\n");
+                if (status & STATUS_FAN_ERROR)
+                    p_printf(RED,(char *) "Device Status\t      ERROR  : Fan failure : fan is mechanically blocked or broken\n");
+            }
+        }
+        else {
+            p_printf(RED,(char *) "Device Status\t     Could Not obtain\n");
+        }
         
         output = true;
     }
@@ -574,6 +616,7 @@ void do_output(struct sps_par *sps)
 uint8_t disp_dev(struct sps_par *sps)
 {
     char    buf[35];
+    SPS30_version gv;
         
     /* get the serial number (check that communication works) */
     if(MySensor.GetSerialNumber(buf, 35) != ERR_OK) {
@@ -584,18 +627,25 @@ uint8_t disp_dev(struct sps_par *sps)
     if (strlen(buf) == 0) 
         p_printf(YELLOW, (char *) "NO serialnumber available\n");
     else
-        p_printf(YELLOW, (char *) "Serialnumber  %s\n", buf);
+        p_printf(YELLOW, (char *) "Serialnumber   %s\n", buf);
 
     /* get the article code */
-    if(MySensor.GetArticleCode(buf, 35) != ERR_OK) {
-       p_printf (RED, (char *) "Error during getting article code\n");
+    if(MySensor.GetProductName(buf, 35) != ERR_OK) {
+       p_printf (RED, (char *) "Error during getting product type\n");
        return(ERR_PROTOCOL);
     }
 
     if (strlen(buf) == 0) 
-        p_printf(YELLOW, (char *) "NO article code available\n");
+        p_printf(YELLOW, (char *) "NO product type available\n");
     else
-        p_printf(YELLOW, (char *) "Article code  %s\n", buf);
+        p_printf(YELLOW, (char *) "Article code   %s\n", buf);
+    
+    if(MySensor.GetVersion(&gv) != ERR_OK) {
+       p_printf (RED, (char *) "Error during getting firmware level\n");
+       return(ERR_PROTOCOL);
+    }
+
+    p_printf(YELLOW, (char *) "SPS30 Firmware %d.%d\n",gv.major,gv.minor);   
     
     return(ERR_OK);
 }
@@ -612,7 +662,7 @@ void main_loop(struct sps_par *sps)
     if (disp_dev(sps) != ERR_OK) return;
     
     /* if only device info was requested */
-    if (sps->dev_info_only == true) return;
+    if (sps->dev_info_only) return;
 
     /* instruct to start reading */
     if (MySensor.start() == false) {
@@ -660,8 +710,14 @@ void main_loop(struct sps_par *sps)
             }
         }
         
+        // if sleep was requisted during wait
+        if (sps->OptMode) MySensor.sleep();
+        
         /* delay for seconds */
         sleep(sps->loop_delay);
+
+        // if sleep was requisted during wait
+        if (sps->OptMode) MySensor.wakeup();        
         
         /* check for endless loop */
         if (sps->loop_count > 0) loop_set--;
@@ -676,38 +732,44 @@ void main_loop(struct sps_par *sps)
 **********************************************************************/
 void usage(struct sps_par *sps)
 {
-    printf(    "%s [options]  (version %s) \n\n"
+    printf(    "%s [options]  (program version %d.%d) \n\n"
     
     "SPS30 settings: \n"
     "-a #   set Auto clean interval in seconds\n"
     "-A     set Auto clean interval to factory setting (604800 seconds)\n"
     "-m     perform a manual clean\n"
-    "-d     display serial-number, article code only\n"
+    "-d     display serial-number, product type and firmware level only\n"
     
     "\nprogram settings\n"
     "-B     do not display output in color\n"
-    "-l #   number of measurements (0 = endless)    (default %d)\n"
-    "-w #   wait-time (seconds) between measurements(default %d)\n"
-    "-v #   verbose / debug level (0 - 2)           (default %d)\n"
-    "-T     add / remove timestamp to output        (default %s)\n"
-    "-M     add / remove MASS info to output        (default %s)\n"
-    "-N     add / remove NUMBERS info to output     (default %s)\n"
-    "-P     add / remove Partsize info to output    (default %s)\n"
+    "-l #   number of measurements (0 = endless)      (default %d)\n"
+    "-w #   wait-time (seconds) between measurements  (default %d)\n"
+    "-v #   verbose / debug level (0 - 2)             (default %d)\n"
+    "-T     add / remove timestamp to output          (default %s)\n"
+    "-E     add / remove display device error   (*1)  (default %s)\n"
+    "-F     add / remove sleep during wait-time (*2)  (default %s)\n"
+    "-M     add / remove MASS info to output          (default %s)\n"
+    "-N     add / remove NUMBERS info to output       (default %s)\n"
+    "-P     add / remove Partsize info to output      (default %s)\n"
+    "\n\t*1 : requires SPS30 firmware level 2.2 or higher\n"
+    "\t*2 : requires SPS30 firmware level 2.0 or higher\n"
     
 #ifdef DYLOS 
     "\nDylos DC1700: \n"
-    "-D port    Enable Dylos input from port        (No default)\n"
-    "-C     add correlation calculation            (default %s)\n"
+    "-D port    Enable Dylos input from port          (No default)\n"
+    "-C     add correlation calculation               (default %s)\n"
 #endif    
 
 #ifdef SDS011
     "\nSDS011: \n"
-    "-S port    Enable SDS011 input from port       (No default)\n"
-    "-C     add correlation calculation            (default %s)\n"
+    "-S port    Enable SDS011 input from port         (No default)\n"
+    "-C     add correlation calculation               (default %s)\n"
 #endif    
-   , progname, version, sps->loop_count, sps->loop_delay, 
+   , progname, DRIVER_MAJOR, DRIVER_MINOR, sps->loop_count, sps->loop_delay, 
    sps->verbose,
    sps->timestamp?"added":"removed",  
+   sps->DevStatus?"added":"removed", 
+   sps->OptMode?"added":"removed", 
    sps->mass?"added":"removed", 
    sps->num?"added":"removed",
    sps->partsize?"added":"removed"
@@ -791,7 +853,25 @@ void parse_cmdline(int opt, char *option, struct sps_par *sps)
     case 'T':  // toggle timestamp to output
         sps->timestamp = ! sps->timestamp;
         break;
-                
+
+    case 'E':  // toggle display device errors
+        if (MySensor.FWCheck(2,2))  
+            sps->DevStatus = ! sps->DevStatus;
+        else {
+            p_printf (RED, (char *) "Can enable display device error status\n");
+            p_printf (RED, (char *) "SPS30 firmware does not have minimum level of 2.2\n");
+        }
+        break;
+        
+    case 'F':  // toggle force sleep during wait-time
+        if (MySensor.FWCheck(2,0))  
+            sps->OptMode = ! sps->OptMode;
+        else {
+            p_printf (RED, (char *) "Can set sleep during wait-time\n");
+            p_printf (RED, (char *) "SPS30 firmware does not have minimum level of 2.0\n");
+        }
+        break;               
+
     case 'v':   // set verbose / debug level
         sps->verbose = (int) strtod(option, NULL);
 
@@ -853,7 +933,7 @@ int main(int argc, char *argv[])
     init_variables(&sps);
 
     /* parse commandline */
-    while ((opt = getopt(argc, argv, "CAa:mdBl:v:w:THhMNPD:S:")) != -1) {
+    while ((opt = getopt(argc, argv, "CAa:mdBl:v:w:EFTHhMNPD:S:")) != -1) {
         parse_cmdline(opt, optarg, &sps);
     }
 

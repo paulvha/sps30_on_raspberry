@@ -57,6 +57,19 @@ type ./sds330 -h or see the detailed document
 ### version 1.0 / May 2019
  * Initial version for Raspberry Pi
 
+### version 1.4  / April 2020
+ * Based on the new SPS30 datasheet (March 2020) a number of functions are added or updated. Some are depending on the new firmware.
+ * Added sleep() and wakeup(). Requires firmware 2.0
+ * Added GetVersion() to obtain the current firmware / hardware info
+ * Added GetStatusReg() to obtain SPS30 status information. Requires firmware 2.2
+ * Added structure SPS30_version for GetVersion
+ * Added FWcheck function to check on correct firmware level
+ * Added INCLUDE_FWCHECK in SPS30lib.h to enable /disable check.
+ * Changed probe() to obtain firmware levels instead of serial number.
+ * Changed on how to obtaining product-type
+ * Depreciated GetArticleCode(). Still supporting backward compatibility
+ * Update to documentation
+
 ## Author
  * Paul van Haastrecht (paulvha@hotmail.com)
 
@@ -64,6 +77,6 @@ type ./sds330 -h or see the detailed document
 This project is licensed under the GNU GENERAL PUBLIC LICENSE 3.0
 
 ## Acknowledgements
-Make sure to read the datasheet from Sensirion. While draft it does provide good starting point.<br>
+Make sure to read the datasheet from Sensirion. The latest version is March 2020 it does provide good starting point.<br>
 
 
