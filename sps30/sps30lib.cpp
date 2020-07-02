@@ -33,6 +33,11 @@
  *  - Changed on how to obtaining product-type
  *  - Depreciated GetArticleCode(). Still supporting backward compatibility
  *  - Update to documentation
+ * 
+ * version 1.4.4  / July 2020
+ *  - update to I2C_WAKEUP code
+ *  - As I now have a SPS30 firmware level 2.2 to test, corrected GetStatusReg() and SetOpMode()
+ *  - Update to documentation
  */
 
 #include "sps30lib.h"
@@ -154,45 +159,6 @@ bool SPS30::FWCheck(uint8_t major, uint8_t minor) {
 }
 
 /**
- * Added version 1.4  REQUIRES FIRMWARE LEVEL 2.2
- *
- * Described in datasheet SPS30 March 2020, page 7
- *
- * @brief Read status register
- *
- * @param  *status
- *  return status as an 'or':
- *   STATUS_OK = 0,
- *   STATUS_SPEED_ERROR = 1,
- *   STATUS_SPEED_CURRENT_ERROR = 2,
- *   STATUS_FAN_ERROR = 4
- *
- * Return obtain result
- * return
- *  ERR_OK = ok
- *  else error
- */
-
-uint8_t SPS30::GetStatusReg(uint8_t *status) {
-    uint8_t ret;
-
-    *status = 0x0;
-
-    // check for minimum Firmware level
-    if(! FWCheck(2,2)) return(ERR_FIRMWARE);
-
-    I2C_fill_buffer(I2C_READ_STATUS_REGISTER);
-
-    ret = I2C_SetPointer_Read(5,false);
-
-    if (_Receive_BUF[1] & 0b00100000) *status |= STATUS_SPEED_ERROR;
-    if (_Receive_BUF[3] & 0b00100000) *status |= STATUS_LASER_ERROR;
-    if (_Receive_BUF[3] & 0b00010000) *status |= STATUS_FAN_ERROR;
-
-    return(ret);
-}
-
-/**
  * @brief Set SPS30 to sleep or wakeup
  *
  * @param mode
@@ -237,14 +203,18 @@ uint8_t SPS30::SetOpMode( uint16_t mode )
         // if not in sleep
         if (! _sleep) return(ERR_OK);
 
-        // send 2 x WAKE-up on I2C to toggle SPS30
-        if (! Instruct(I2C_WAKEUP))  return(ERR_PROTOCOL);
+        // send 2 x WAKE-up on I2C to toggle SPS30. 
+        // first will cause Write NACK error.. Ignore !
+        Instruct(I2C_WAKEUP);
 
         // give some time for the SPS30 to act on toggle as WAKEUP must be sent in 100mS
         delay(10);
 
-        if (! Instruct(I2C_WAKEUP))  return(ERR_PROTOCOL);
-
+        Instruct(I2C_WAKEUP);
+        
+        // give time for SPS30 to go idle
+        delay(100);
+        
         // indicate not in sleep anymore
         _sleep = false;
 
@@ -401,6 +371,56 @@ uint8_t SPS30::GetAutoCleanInt(uint32_t *val)
     *val = byte_to_U32(0);
 
     return(ret);
+}
+
+/**
+ * Added version 1.4  REQUIRES FIRMWARE LEVEL 2.2
+ *
+ * Described in datasheet SPS30 March 2020, page 7
+ *
+ * @brief Read status register
+ *
+ * @param  *status
+ *  return status as an 'or':
+ *   STATUS_OK = 0,
+ *   STATUS_SPEED_ERROR = 1,
+ *   STATUS_SPEED_CURRENT_ERROR = 2,
+ *   STATUS_FAN_ERROR = 4
+ *
+ * Return obtain result
+ * return
+ *  ERR_OK = ok, no isues found
+ *  else ERR_OUTOFRANGE, issues found
+ */
+uint8_t SPS30::GetStatusReg(uint8_t *status) {
+
+    *status = 0x0;
+
+    // check for minimum Firmware level
+    if(! FWCheck(2,2)) return(ERR_FIRMWARE);
+
+    I2C_fill_buffer(I2C_READ_STATUS_REGISTER);
+    I2C_SetPointer_Read(4,false);
+
+    // clear status register just in case there was an issue
+    I2C_fill_buffer(I2C_CLEAR_STATUS_REGISTER);
+    I2C_SetPointer();
+    
+    /* Version 1.4.4
+     * From the datasheet : If one of the device status flags of type “Error” is set,
+     * this is also indicated in every SHDLC response frame by the Error-Flag in the state byte.
+     *
+     * often ret = 0x80 is returned when there is an error, BUT NOT always !
+     * So the return value of reading is ignored
+     */
+
+    if (_Receive_BUF[1] & 0b00100000) *status |= STATUS_SPEED_ERROR;
+    if (_Receive_BUF[3] & 0b00100000) *status |= STATUS_LASER_ERROR;
+    if (_Receive_BUF[3] & 0b00010000) *status |= STATUS_FAN_ERROR;
+
+    if (*status != 0x0) return(ERR_OUTOFRANGE);
+
+    return(ERR_OK);
 }
 
 /**
@@ -692,7 +712,7 @@ uint8_t SPS30::I2C_SetPointer()
 {
     if (_Send_BUF_Length == 0) return(ERR_DATALENGTH);
 
-    if (_SPS30_Debug == 1){
+    if (_SPS30_Debug){
         printf("I2C Sending: ");
         for(uint8_t i = 0; i < _Send_BUF_Length; i++)
             printf(" 0x%02X", _Send_BUF[i]);

@@ -135,7 +135,7 @@ struct Description {
 #define I2C_READ_DATA_RDY_FLAG      0x0202
 #define I2C_READ_MEASURED_VALUE     0x0300
 #define I2C_SLEEP                   0X1001  // ADDED 1.4
-#define I2C_WAKEUP                  0X1002  // ADDED 1.4
+#define I2C_WAKEUP                  0X1103  // ADDED 1.4 // update 1.4.4
 #define I2C_START_FAN_CLEANING      0x5607
 #define I2C_AUTO_CLEANING_INTERVAL  0x8004
 #define I2C_SET_AUTO_CLEANING_INTERVAL      0x8005
@@ -144,7 +144,7 @@ struct Description {
 #define I2C_READ_SERIAL_NUMBER      0xD033
 #define I2C_READ_VERSION            0xD100 // ADDED 1.4
 #define I2C_READ_STATUS_REGISTER    0xD206 // ADDED 1.4
-#define I2C_CLEAR_STATUS_REGISTER   0xD206 // ADDED 1.4 (NOT USED)
+#define I2C_CLEAR_STATUS_REGISTER   0xD210 // ADDED 1.4 // update 1.4.4 
 #define I2C_RESET                   0xD304
 
 /**
@@ -178,7 +178,7 @@ enum SPS_status {
 /**
  * added version 1.4
  *
- * Measurement can be done in FLOAR or unsigned 16bits
+ * Measurement can be done in FLOAT or unsigned 16bits
  * page 6 datasheet SPS30 page 6.
  *
  * This driver only uses float

@@ -576,24 +576,20 @@ void do_output(struct sps_par *sps)
     }
     
     if (sps->DevStatus) {
-        if (MySensor.GetStatusReg(&status) == ERR_OK) {
-            if (status == 0)
-                p_printf(GREEN,(char *) "Device Status\t     No Errors.\n");
-            
-            else {
-                
-                if (status & STATUS_SPEED_ERROR)
-                    p_printf(RED,(char *) "Device Status\t      WARNING: Fan is turning too fast or too slow\n");
-                if (status & STATUS_LASER_ERROR)
-                    p_printf(RED,(char *) "Device Status\t      ERROR  : Laser failure\n");
-                if (status & STATUS_FAN_ERROR)
-                    p_printf(RED,(char *) "Device Status\t      ERROR  : Fan failure : fan is mechanically blocked or broken\n");
-            }
-        }
-        else {
-            p_printf(RED,(char *) "Device Status\t     Could Not obtain\n");
-        }
         
+        if (MySensor.GetStatusReg(&status) == ERR_OK) {
+               p_printf(GREEN,(char *) "Device Status\t     No Errors.\n");
+        }    
+        else {
+            
+            if (status & STATUS_SPEED_ERROR)
+                p_printf(RED,(char *) "Device Status\t      WARNING: Fan is turning too fast or too slow\n");
+            if (status & STATUS_LASER_ERROR)
+                p_printf(RED,(char *) "Device Status\t      ERROR  : Laser failure\n");
+            if (status & STATUS_FAN_ERROR)
+                p_printf(RED,(char *) "Device Status\t      ERROR  : Fan failure : fan is mechanically blocked or broken\n");
+        }
+       
         output = true;
     }
     
@@ -717,7 +713,12 @@ void main_loop(struct sps_par *sps)
         sleep(sps->loop_delay);
 
         // if sleep was requisted during wait
-        if (sps->OptMode) MySensor.wakeup();        
+        if (sps->OptMode) {
+            MySensor.wakeup();   
+        
+            // give time to measure new results
+            delay(4000);     
+        }
         
         /* check for endless loop */
         if (sps->loop_count > 0) loop_set--;
@@ -746,7 +747,7 @@ void usage(struct sps_par *sps)
     "-w #   wait-time (seconds) between measurements  (default %d)\n"
     "-v #   verbose / debug level (0 - 2)             (default %d)\n"
     "-T     add / remove timestamp to output          (default %s)\n"
-    "-E     add / remove display device error   (*1)  (default %s)\n"
+    "-E     add / remove display device status   (*1)  (default %s)\n"
     "-F     add / remove sleep during wait-time (*2)  (default %s)\n"
     "-M     add / remove MASS info to output          (default %s)\n"
     "-N     add / remove NUMBERS info to output       (default %s)\n"
@@ -856,7 +857,7 @@ void parse_cmdline(int opt, char *option, struct sps_par *sps)
 
     case 'E':  // toggle display device errors
         if (MySensor.FWCheck(2,2))  
-            sps->DevStatus = ! sps->DevStatus;
+            sps->DevStatus =! sps->DevStatus;
         else {
             p_printf (RED, (char *) "Can enable display device error status\n");
             p_printf (RED, (char *) "SPS30 firmware does not have minimum level of 2.2\n");
@@ -865,7 +866,7 @@ void parse_cmdline(int opt, char *option, struct sps_par *sps)
         
     case 'F':  // toggle force sleep during wait-time
         if (MySensor.FWCheck(2,0))  
-            sps->OptMode = ! sps->OptMode;
+            sps->OptMode =! sps->OptMode;
         else {
             p_printf (RED, (char *) "Can set sleep during wait-time\n");
             p_printf (RED, (char *) "SPS30 firmware does not have minimum level of 2.0\n");

@@ -67,7 +67,11 @@ type ./sds330 -h or see the detailed document
  * Added INCLUDE_FWCHECK in SPS30lib.h to enable /disable check.
  * Changed probe() to obtain firmware levels instead of serial number.
  * Changed on how to obtaining product-type
- * Depreciated GetArticleCode(). Still supporting backward compatibility
+ * Depreciated GetArticleCode() Still supporting backward compatibility
+ * Update to documentation
+
+### Version 1.4.4 / July 2020
+ * Validated against an SPS30 with firmware 2.2 (thank you Sensirion)
  * Update to documentation
 
 ## Author
