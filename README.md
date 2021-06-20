@@ -81,6 +81,11 @@ type ./sds330 -h or see the detailed document
 This project is licensed under the GNU GENERAL PUBLIC LICENSE 3.0
 
 ## Acknowledgements
-Make sure to read the datasheet from Sensirion. The latest version is March 2020 it does provide good starting point.<br>
+### Make sure to read the datasheet from Sensirion. The latest version is March 2020 it does provide good starting point.<br>
 
+### June 2021, Input from CCDZAPPER:
+
+This is not an issue - just a note to help others that may have damaged or lost the flimsy cable with the ZHR-5 connector. It is available inexpensively on eBay: ![https://www.ebay.com/itm/114551266422](https://www.ebay.com/itm/114551266422)
+Make sure you pick the correct type, which is 1.25mm 5 Pin.
+(10 Sets JST SH 1.0 ZH 1.5 PH 2.0 XH 2.5 Housing Connector Female Male Wire)
 
