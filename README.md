@@ -24,12 +24,12 @@ The monitor can optionally be extended to include a DYLOS DC1700
 and /or SDS011 monitor and provide common output.
 
 ## Hardware connection
- * SPS30 pin    Rasberry Pi
- * 1 VCC        +5V
- * 2 SDA        SDA pin 3 / GPIO 2
- * 3 SCL        SCL pin 5 / GPIO 3
- * 4 SELECT     GND (I2C communication)
- * 5 GND        GND
+ * SPS30 pin....Rasberry Pi
+ * 1 VCC....+5V
+ * 2 SDA....SDA pin 3 / GPIO 2
+ * 3 SCL....SCL pin 5 / GPIO 3
+ * 4 SELECT....GND (I2C communication)
+ * 5 GND....GND
 
  <br>
  Backside look
