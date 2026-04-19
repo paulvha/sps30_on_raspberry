@@ -25,23 +25,24 @@ and /or SDS011 monitor and provide common output.
 
 ## Hardware connection
  * SPS30 pin....Rasberry Pi
- * 1 VCC.......+5V
- * 2 SDA.......SDA pin 3 / GPIO 2
- * 3 SCL.......SCL pin 5 / GPIO 3
+ * 1 VCC.........+5V
+ * 2 SDA.........SDA pin 3 / GPIO 2
+ * 3 SCL.........SCL pin 5 / GPIO 3
  * 4 SELECT....GND (I2C communication)
- * 5 GND.......GND
+ * 5 GND........GND
 
  <br>
- Backside look<br>
- ===============<br>
+ Backside look to pinlocation<br>
+ ================<br>
  !...............................!<br>
- !..............1 2 3 4 5  |<br>
+ !..............1 2 3 4 5  !<br>
  ===============<br>
+
+No need for pull-up resistors on RPI4.
 
 ## Prerequisites
 BCM2835 library (http://www.airspayce.com/mikem/bcm2835/)
 
-No need for pull-up resistors on RPI4.
 
 ## Software installation
 Install latest from BCM2835 from : http://www.airspayce.com/mikem/bcm2835/
