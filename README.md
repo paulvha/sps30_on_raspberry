@@ -32,10 +32,10 @@ and /or SDS011 monitor and provide common output.
  * 5 GND.......GND
 
  <br>
- Backside look
+ Backside look<br>
  ==========================<br>
- !                        !<br>
- !             1 2 3 4 5  |<br>
+ !.........................!<br>
+ !..............1 2 3 4 5  |<br>
  ==========================<br>
 
 ## Prerequisites
