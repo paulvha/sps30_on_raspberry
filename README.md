@@ -25,18 +25,18 @@ and /or SDS011 monitor and provide common output.
 
 ## Hardware connection
  * SPS30 pin....Rasberry Pi
- * 1 VCC....+5V
- * 2 SDA....SDA pin 3 / GPIO 2
- * 3 SCL....SCL pin 5 / GPIO 3
+ * 1 VCC.......+5V
+ * 2 SDA.......SDA pin 3 / GPIO 2
+ * 3 SCL.......SCL pin 5 / GPIO 3
  * 4 SELECT....GND (I2C communication)
- * 5 GND....GND
+ * 5 GND.......GND
 
  <br>
  Backside look
- ==========================
- !                        !
- !             1 2 3 4 5  |
- ==========================
+ ==========================<br>
+ !                        !<br>
+ !             1 2 3 4 5  |<br>
+ ==========================<br>
 
 ## Prerequisites
 BCM2835 library (http://www.airspayce.com/mikem/bcm2835/)
