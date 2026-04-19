@@ -23,20 +23,37 @@ but wanted to connect to a Raspberry PI over I2C.
 The monitor can optionally be extended to include a DYLOS DC1700
 and /or SDS011 monitor and provide common output.
 
+## Hardware connection
+ * SPS30 pin    Rasberry Pi
+ * 1 VCC        +5V
+ * 2 SDA        SDA pin 3 / GPIO 2
+ * 3 SCL        SCL pin 5 / GPIO 3
+ * 4 SELECT     GND (I2C communication)
+ * 5 GND        GND
+
+ <br>
+ Backside look
+ ==========================
+ !                        !
+ !             1 2 3 4 5  |
+ ==========================
+
 ## Prerequisites
 BCM2835 library (http://www.airspayce.com/mikem/bcm2835/)
+
+No need for pull-up resistors on RPI4.
 
 ## Software installation
 Install latest from BCM2835 from : http://www.airspayce.com/mikem/bcm2835/
 
-1. wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.56.tar.gz
-2. tar -zxf bcm2835-1.56.tar.gz     // 1.56 was version number at the time of writing
-3. cd bcm2835-1.56
+1. wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.75.tar.gz
+2. tar -zxf bcm2835-1.75.tar.gz     // 1.75 was version number at the time of writing
+3. cd bcm2835-1.75
 4. ./configure
 5. sudo make check
 6. sudo make install
 
-To compile the program, go in the directory and type
+To compile the program, go in the SPS30 directory and type
     make
 
 To create a build the SPS30 with Dylos monitor (in case you have one):
@@ -50,12 +67,17 @@ To create a build the SPS30 with BOTH SDS011 & Dylos monitor:
 
 ## Program usage
 ### Program options
-type ./sds330 -h or see the detailed document
+type ./sps30 -h or see the detailed document
 
 ## Versioning
 
-### version 1.0 / May 2019
- * Initial version for Raspberry Pi
+### Version 1.4.5 / April 2026
+ * tested on trixie release & RPI4 (SPS30 only!)
+ * updated makefile for warnings
+
+### Version 1.4.4 / July 2020
+ * Validated against an SPS30 with firmware 2.2 (thank you Sensirion)
+ * Update to documentation
 
 ### version 1.4  / April 2020
  * Based on the new SPS30 datasheet (March 2020) a number of functions are added or updated. Some are depending on the new firmware.
@@ -70,9 +92,8 @@ type ./sds330 -h or see the detailed document
  * Depreciated GetArticleCode() Still supporting backward compatibility
  * Update to documentation
 
-### Version 1.4.4 / July 2020
- * Validated against an SPS30 with firmware 2.2 (thank you Sensirion)
- * Update to documentation
+### version 1.0 / May 2019
+ * Initial version for Raspberry Pi
 
 ## Author
  * Paul van Haastrecht (paulvha@hotmail.com)
@@ -81,11 +102,22 @@ type ./sds330 -h or see the detailed document
 This project is licensed under the GNU GENERAL PUBLIC LICENSE 3.0
 
 ## Acknowledgements
-### Make sure to read the datasheet from Sensirion. The latest version is March 2020 it does provide good starting point.<br>
+### Make sure to read the datasheet from Sensirion. The latest version is June 2023.<br>
 
-### June 2021, Input from CCDZAPPER:
+### June 2021, Input from CCDZAPPER: / April 2026 : updated to 1.5mm and updated outdated link
 
-This is not an issue - just a note to help others that may have damaged or lost the flimsy cable with the ZHR-5 connector. It is available inexpensively on eBay: ![https://www.ebay.com/itm/114551266422](https://www.ebay.com/itm/114551266422)
-Make sure you pick the correct type, which is 1.25mm 5 Pin.
-(10 Sets JST SH 1.0 ZH 1.5 PH 2.0 XH 2.5 Housing Connector Female Male Wire)
+This is not an issue - just a note to help others that may have damaged or lost the flimsy cable with the ZHR-5 connector.
+Make sure you pick the correct type, which is 1.50 mm 5 Pin.  https://www.digikey.com/en/products/detail/jst-sales-america-inc/ZHR-5/608642
+
+
+### October 2021 : Input from Nkea
+
+I also found another compatible connector. I also recommend buying spare crimp contacts as they are very small and fragile. Needs a crimp tool. I use a Connector Pliers model PA-09 by Engineer I had from other works. It may be useful if special lengths are needed of there is no stock on JST ones
+
+Housing:
+https://www.mouser.es/ProductDetail/Wurth-Elektronik/648005113322?qs=%2Fha2pyFaduguH2zIpdkgUWxmzUvrTES979PXEupx7lQusLC5mK%2FQfQ%3D%3D
+
+crimp contacts
+https://www.mouser.es/ProductDetail/Wurth-Elektronik/64800113722DEC?qs=%2Fha2pyFaduguH2zIpdkgUUfd6dp6pTTujW8FuBzdSDO2pxvJN95p5w%3D%3D
+
 

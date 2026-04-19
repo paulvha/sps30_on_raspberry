@@ -7,8 +7,8 @@
  *
  * ================ Disclaimer ===================================
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation, either version 3 of the 
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -18,8 +18,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
- ************************************************************************ 
+ *
+ ************************************************************************
  * version 1.4  / April 2020
  *  - Based on the new SPS30 datasheet (March 2020) a number of functions
  *    are added or updated. Some are depending on the new firmware.
@@ -33,7 +33,7 @@
  *  - Changed on how to obtaining product-type
  *  - Depreciated GetArticleCode(). Still supporting backward compatibility
  *  - Update to documentation
- * 
+ *
  * version 1.4.4  / July 2020
  *  - update to I2C_WAKEUP code
  *  - As I now have a SPS30 firmware level 2.2 to test, corrected GetStatusReg() and SetOpMode()
@@ -108,7 +108,7 @@ void SPS30::EnableDebugging(uint8_t act)
  * Return:
  *   true on success else false
  */
-bool SPS30::probe() 
+bool SPS30::probe()
 {
     SPS30_version v;
 
@@ -203,7 +203,7 @@ uint8_t SPS30::SetOpMode( uint16_t mode )
         // if not in sleep
         if (! _sleep) return(ERR_OK);
 
-        // send 2 x WAKE-up on I2C to toggle SPS30. 
+        // send 2 x WAKE-up on I2C to toggle SPS30.
         // first will cause Write NACK error.. Ignore !
         Instruct(I2C_WAKEUP);
 
@@ -211,10 +211,10 @@ uint8_t SPS30::SetOpMode( uint16_t mode )
         delay(10);
 
         Instruct(I2C_WAKEUP);
-        
+
         // give time for SPS30 to go idle
         delay(100);
-        
+
         // indicate not in sleep anymore
         _sleep = false;
 
@@ -239,7 +239,7 @@ uint8_t SPS30::SetOpMode( uint16_t mode )
  *  I2C_SLEEP
  *  I2C_WAKEUP
  *
- * @return 
+ * @return
  *  true = ok
  *  false = error
  */
@@ -255,7 +255,7 @@ bool SPS30::Instruct(uint32_t type)
             return(false);
         }
     }
-    
+
     I2C_fill_buffer(type);
 
     if (I2C_SetPointer() == ERR_OK){
@@ -321,10 +321,10 @@ uint8_t SPS30::Get_Device_info(uint32_t type, char *ser, uint8_t len)
     uint8_t i, ret;
 
     I2C_fill_buffer(type);
-    
+
     // Serial or article code
     if (type == I2C_READ_SERIAL_NUMBER) {
-        
+
         // true = check zero termination
         ret =  I2C_SetPointer_Read(len,true);
     }
@@ -405,7 +405,7 @@ uint8_t SPS30::GetStatusReg(uint8_t *status) {
     // clear status register just in case there was an issue
     I2C_fill_buffer(I2C_CLEAR_STATUS_REGISTER);
     I2C_SetPointer();
-    
+
     /* Version 1.4.4
      * From the datasheet : If one of the device status flags of type “Error” is set,
      * this is also indicated in every SHDLC response frame by the Error-Flag in the state byte.
@@ -505,7 +505,7 @@ float SPS30::Get_Single_Value(uint8_t value)
         case v_NumPM10:  return(v.NumPM10);
         case v_PartSize: return(v.PartSize);
     }
-    
+
     // stop WALL complaining
     return(0);
 }
@@ -550,7 +550,7 @@ uint8_t SPS30::GetValues(struct sps_values *v)
         if (Check_data_ready())
         {
             I2C_fill_buffer(I2C_READ_MEASURED_VALUE);
-            
+
             ret = I2C_SetPointer_Read(40);
             break;
         }
@@ -562,7 +562,7 @@ uint8_t SPS30::GetValues(struct sps_values *v)
 
     if (loop == 3) return(ERR_TIMEOUT);
     if (ret != ERR_OK) return(ERR_PROTOCOL);
-    
+
     memset(v,0x0,sizeof(struct sps_values));
 
     // get data
@@ -617,11 +617,11 @@ uint32_t SPS30::byte_to_U32(int x)
 
 /**
  * @brief : Start I2C communication
- * 
+ *
  * @return
  * All good : ERR_OK
  * else error
- * 
+ *
  */
 uint8_t SPS30::I2C_init()
 {
@@ -633,18 +633,18 @@ uint8_t SPS30::I2C_init()
     // will select I2C channel 0 or 1 depending on board version.
     if (!bcm2835_i2c_begin()) {
         printf("Can't setup I2c pin!\n");
-        
+
         // release BCM2835 library
         bcm2835_close();
         return(ERR_PROTOCOL);
     }
-    
-    /* set BSC speed to 100Khz*/
+
+    /* set BSC speed to 80 - 100Khz*/
     bcm2835_i2c_setClockDivider(BCM2835_I2C_CLOCK_DIVIDER_2500);
-    
+
     /* set BCM2835 slaveaddress */
     bcm2835_i2c_setSlaveAddress(SPS30_ADDRESS);
-    
+
     return(ERR_OK);
 }
 
@@ -654,8 +654,8 @@ uint8_t SPS30::I2C_init()
 void SPS30::I2C_close()
 {
     // reset pins
-    bcm2835_i2c_end();  
-    
+    bcm2835_i2c_end();
+
     // release BCM2835 library
     bcm2835_close();
 }
@@ -785,7 +785,7 @@ uint8_t SPS30::I2C_SetPointer_Read(uint8_t cnt, bool chk_zero)
  * @param chk_zero :  check for zero termination (Serial and product code)
  *  false : expect and read all the data bytes
  *  true  : expect NULL termination and count is MAXIMUM data bytes
- * 
+ *
  * return :
  * OK   ERR_OK
  * else error
@@ -799,7 +799,7 @@ uint8_t SPS30::I2C_ReadToBuffer(uint8_t count, bool chk_zero)
     // every 2 bytes have a CRC
     x = count / 2 * 3;
     if (x > MAXBUF) x = MAXBUF;
-    
+
     switch(bcm2835_i2c_read((char *) tmp_buf, x))
     {
         case BCM2835_I2C_REASON_ERROR_NACK :
@@ -819,7 +819,7 @@ uint8_t SPS30::I2C_ReadToBuffer(uint8_t count, bool chk_zero)
     }
 
     j = i = _Receive_BUF_Length = 0;
-    
+
     /* parse the response */
     for (y = 0; y < x; y++)
     {
@@ -829,10 +829,10 @@ uint8_t SPS30::I2C_ReadToBuffer(uint8_t count, bool chk_zero)
         if( i == 3) {
 
             if (data[2] != I2C_calc_CRC(&data[0])){
-                
+
                 if (_SPS30_Debug == 2)
                     printf("I2C CRC error: Expected 0x%02X, calculated 0x%02X\n",data[2] & 0xff,I2C_calc_CRC(&data[0]) &0xff);
-                
+
                 return(ERR_PROTOCOL);
             }
 
@@ -880,7 +880,7 @@ bool SPS30::Check_data_ready()
    if (I2C_SetPointer_Read(2) != ERR_OK) return(false);
 
    if (_Receive_BUF[1] == 1) return(true);
-   
+
    return(false);
 }
 

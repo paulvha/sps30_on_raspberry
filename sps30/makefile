@@ -1,7 +1,8 @@
 ###############################################################
+#
 # makefile for sps30. May 2019 / paulvha
 #
-# To create a build with only the SPS30 monitor type: 
+# To create a build with only the SPS30 monitor type:
 #		make
 #
 # To create a build with the SPS30 and DYLOS monitor type:
@@ -12,7 +13,10 @@
 #
 # To create a build with the SPS30 BOTH DYLOS and SDS011 monitor type:
 # 		make BUILD=BOTH
-
+#
+# April 2026
+# small change to create .o from .c or .cpp files
+# tested sps30 on bookworm release
 ###############################################################
 BUILD := sps30
 
@@ -23,7 +27,7 @@ OBJ_SDS := sds011/serial.o sds011/sds011_lib.o sds011/sdsmon.o
 
 # GCC flags
 CXXFLAGS := -Wall -Werror -c
-CC_DYLOS := -DDYLOS 
+CC_DYLOS := -DDYLOS
 CC_SDS := -DSDS011
 
 # set the right flags and objects to include
@@ -32,13 +36,13 @@ fresh:
 
 #include DYLOS DC1700
 else ifeq ($(BUILD),DYLOS)
-CXXFLAGS += $(CC_DYLOS) 
+CXXFLAGS += $(CC_DYLOS)
 OBJ += $(OBJ_DYLOS)
 fresh:
 
 #include SDS011
 else ifeq ($(BUILD),SDS011)
-CXXFLAGS += $(CC_SDS) 
+CXXFLAGS += $(CC_SDS)
 OBJ += $(OBJ_SDS)
 fresh:
 
@@ -53,18 +57,20 @@ endif
 
 # set variables
 CC := gcc
-DEPS := sps30lib.h bcm2835.h 
+DEPS := sps30lib.h bcm2835.h
 LIBS := -lbcm2835 -lm
 
 # how to create .o from .c or .cpp files
-.c.o: %c $(DEPS)
+#.c.o: %c $(DEPS) (old)
+%.o: %.c
 	$(CC) $(CXXFLAGS) -o $@ $<
 
-.cpp.o: %c $(DEPS)
+%.o: %.cpp %.c $(DEPS)
+#.cpp.o: %c $(DEPS) (old)
 	$(CC) $(CXXFLAGS) -o $@ $<
 
-.PHONY : clean sps30 fresh newsps 
-	
+.PHONY : clean sps30 fresh newsps
+
 sps30 : $(OBJ)
 	$(CC) -o $@ $^ $(LIBS)
 
@@ -72,10 +78,10 @@ clean :
 	rm -f sps30 dylos/dylos.o sds011/sds011_lib.o sds011/serial.o sds011/sdsmon.o $(OBJ)
 
 # sps30.o is removed as this is only impacted by including
-# Dylos monitor SDS011 or not. 
+# Dylos monitor SDS011 or not.
 newsps :
 	rm -f sps30.o
-	
+
 # first execute newsps then build sps30
 fresh : newsps sps30
 
