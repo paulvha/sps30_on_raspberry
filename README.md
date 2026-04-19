@@ -33,10 +33,10 @@ and /or SDS011 monitor and provide common output.
 
  <br>
  Backside look<br>
- ==========================<br>
- !.........................!<br>
+ ==================<br>
+ !.............................!<br>
  !..............1 2 3 4 5  |<br>
- ==========================<br>
+ ==================<br>
 
 ## Prerequisites
 BCM2835 library (http://www.airspayce.com/mikem/bcm2835/)
